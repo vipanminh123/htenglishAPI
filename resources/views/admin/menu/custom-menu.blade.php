@@ -1,0 +1,1 @@
+@include('admin.menu.custom-menu-item', array('items' => $admin_menu->roots()))
