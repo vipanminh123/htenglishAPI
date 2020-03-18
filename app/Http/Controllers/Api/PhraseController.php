@@ -19,7 +19,6 @@ class PhraseController extends Controller
     
     public function getAllPhraseOutStorage(Request $request) {
         $user = JWTAuth::toUser($request->input('token'));
-        // $userInfo = User::where('email', $user->email)->first();
 
     	$user_phrases = $user->phrases;
     	$arr = [];
@@ -28,20 +27,72 @@ class PhraseController extends Controller
     	}
 
     	$cat_phrases = Categories_phrases::all();
-        if($request->input('filter') && $request->input('filter') != 'all') {
-            $filter = $request->input('filter');
-            $phrases = Categories_phrases::find($filter)->Phrases()->whereNotIn('id', $arr)->orderBy('english', 'asc')->get();
-            return response()->json([
-                'phrases' => $phrases,
-                'filter' => $filter,
-                'cat_phrases' => $cat_phrases
-            ]);
-        }
     	$phrases = Phrases::whereNotIn('id',  $arr)->orderBy('english', 'asc')->get();
         return response() ->json([
             'phrases' => $phrases,
             'cat_phrases' => $cat_phrases
         ]);
+    }
+
+    public function addToStorage(Request $request) 
+    {
+    	$phrase_id = $request->get('id');
+        $user = JWTAuth::toUser($request->get('token'));
+        $phrase = Phrases::where('id', $phrase_id)->first();
+        $user->phrases()->attach($phrase);
+        
+    	$user_phrases = $user->phrases;
+    	$arr = [];
+    	foreach ($user_phrases as $val) {
+    		$arr[] = $val->pivot->phrase_id;
+        }
+        $phrases = Phrases::whereNotIn('id',  $arr)->orderBy('english', 'asc')->get();
+
+        return response()->json($phrases);
+    }
+
+    public function storage(Request $request) 
+    {
+    	$user = JWTAuth::toUser($request->get('token'));
+    	$user_phrases = $user->phrases;
+    	$arr = [];
+    	foreach ($user_phrases as $val) {
+    		$arr[] = $val->pivot->phrase_id;
+    	}
+    	
+    	$cat_phrases = Categories_phrases::all();
+        
+    	$phrases = Phrases::whereIn('id',  $arr)->orderBy('english', 'asc')->get();
+        return response() ->json([
+            'phrases' => $phrases,
+            'cat_phrases' => $cat_phrases
+        ]);
+    }
+
+    public function remove(Request $request) 
+    {
+    	$phrase_id = $request->get('id');
+        $user = JWTAuth::toUser($request->get('token'));
+        $phrase = Phrases::where('id', $phrase_id)->first();
+        $user->phrases()->detach($phrase);	
+        
+        $user_phrases = $user->phrases;
+    	$arr = [];
+    	foreach ($user_phrases as $val) {
+    		$arr[] = $val->pivot->phrase_id;
+    	}
+    	
+    	$cat_phrases = Categories_phrases::all();
+        
+    	$phrases = Phrases::whereIn('id',  $arr)->orderBy('english', 'asc')->get();
+        return response() ->json($phrases);
+    }
+
+    public function learn(Request $request) 
+    {
+    	$user = JWTAuth::toUser($request->get('token'));
+    	$phrases = $user->phrases()->inRandomOrder()->get();
+    	return response() ->json($phrases);
     }
 
 }
